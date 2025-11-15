@@ -1,0 +1,45 @@
+<% layout('layout') -%>
+<h1>Admin Dashboard</h1>
+
+<h2>Pending Job Approvals</h2>
+<ul>
+  <% pendingJobs.forEach(j => { %>
+    <li>
+      <strong><%= j.title %></strong> - <%= j.company %>
+      <form action="/admin/jobs/<%= j._id %>/approve" method="post" style="display:inline;">
+        <!-- If you want to approve via form, you’ll need a POST route handler; we have API route -->
+        <button type="submit" disabled>Approve (use API)</button>
+      </form>
+    </li>
+  <% }) %>
+</ul>
+
+<h2>Approved Jobs</h2>
+<ul>
+  <% jobs.forEach(j => { %>
+    <li><%= j.title %> - <%= j.company %></li>
+  <% }) %>
+</ul>
+
+<h2>Recent Applications</h2>
+<ul>
+  <% applications.forEach(a => { %>
+    <li>
+      <%= a.applicant?.name %> → <%= a.job?.title %> 
+      (<%= a.status %>)
+    </li>
+  <% }) %>
+</ul>
+
+<h2>Notifications</h2>
+<ul>
+  <% notifications.forEach(n => { %>
+    <li>
+      [<%= n.type %>] <%= n.message %> 
+      <% if (n.meta && n.meta.jobId) { %> (Job: <%= n.meta.jobId %>) <% } %>
+      <% if (n.meta && n.meta.applicationId) { %> (Application: <%= n.meta.applicationId %>) <% } %>
+      - from: <%= n.fromUser ? n.fromUser.email : 'system' %>
+      - <%= n.read ? 'read' : 'unread' %>
+    </li>
+  <% }) %>
+</ul>
