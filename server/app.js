@@ -39,7 +39,12 @@ initSocket(server);
 
     
     app.use(helmet({ crossOriginResourcePolicy: false }));
-    app.use(cors());
+    const allowedOrigin = process.env.CLIENT_URL || 'http://localhost:5173';
+app.use(cors({
+  origin: allowedOrigin,
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+}));
+
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
     app.use(morgan('dev'));
