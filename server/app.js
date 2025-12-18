@@ -40,27 +40,11 @@ initSocket(server);
     /* =========================
        ✅ FIXED CORS CONFIG
     ========================= */
-    const allowedOrigins = [
-      'http://localhost:5173',
-      process.env.CLIENT_URL,
-    ].filter(Boolean);
-
-    app.use(
-      cors({
-        origin: function (origin, callback) {
-          // Allow server-to-server / Postman
-          if (!origin) return callback(null, true);
-
-          if (allowedOrigins.includes(origin)) {
-            return callback(null, true);
-          }
-
-          return callback(new Error('Not allowed by CORS'));
-        },
-        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-        credentials: true,
-      })
-    );
+    app.use(cors({
+  origin: true, // reflect request origin
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+}));
     /* ========================= */
 
     app.use(express.json());
