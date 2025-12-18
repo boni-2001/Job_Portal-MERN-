@@ -1,9 +1,8 @@
-
 require('dotenv').config();
 const path = require('path');
 const http = require('http');
 const express = require('express');
-const axios = require('axios'); 
+const axios = require('axios');
 
 const connectDB = require('./app/config/db');
 const helmet = require('helmet');
@@ -25,7 +24,6 @@ const contactRoutes = require('./app/routes/contactRoutes');
 const adminMessageRoutes = require('./app/routes/adminMessageRoutes');
 const notificationRoutes = require('./app/routes/notificationRoutes');
 
-
 const PORT = process.env.PORT || 5000;
 const app = express();
 const server = http.createServer(app);
@@ -37,13 +35,33 @@ initSocket(server);
   try {
     await connectDB();
 
-    
     app.use(helmet({ crossOriginResourcePolicy: false }));
-    const allowedOrigin = process.env.CLIENT_URL || 'http://localhost:5173';
-app.use(cors({
-  origin: allowedOrigin,
-  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-}));
+
+    /* =========================
+       ✅ FIXED CORS CONFIG
+    ========================= */
+    const allowedOrigins = [
+      'http://localhost:5173',
+      process.env.CLIENT_URL,
+    ].filter(Boolean);
+
+    app.use(
+      cors({
+        origin: function (origin, callback) {
+          // Allow server-to-server / Postman
+          if (!origin) return callback(null, true);
+
+          if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
+          }
+
+          return callback(new Error('Not allowed by CORS'));
+        },
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        credentials: true,
+      })
+    );
+    /* ========================= */
 
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
@@ -63,21 +81,22 @@ app.use(cors({
     app.use('/api/applications', applicationRoutes);
     app.use('/api/users', userRoutes);
     app.use('/admin', adminRoutes);
-  app.use('/api/files', fileRoutes);  
+    app.use('/api/files', fileRoutes);
+    app.use('/api/contact', contactRoutes);
+    app.use('/api/admin/messages', adminMessageRoutes);
+    app.use('/api/notifications', notificationRoutes);
 
-  app.use('/api/contact', contactRoutes);
-app.use('/api/admin/messages', adminMessageRoutes);
-app.use('/api/notifications', notificationRoutes);
-    //  INLINE & DOWNLOAD ENDPOINTS 
+    // INLINE & DOWNLOAD ENDPOINTS
     const ALLOWED_HOSTS = ['res.cloudinary.com'];
 
-    //  (renders PDF in browser)
     app.get('/api/files/inline', async (req, res) => {
       const raw = req.query.url;
       if (!raw) return res.status(400).json({ message: 'Missing url param' });
 
       let u;
-      try { u = new URL(raw); } catch { return res.status(400).json({ message: 'Invalid URL' }); }
+      try { u = new URL(raw); } 
+      catch { return res.status(400).json({ message: 'Invalid URL' }); }
+
       if (!ALLOWED_HOSTS.includes(u.hostname)) {
         return res.status(400).json({ message: 'URL host not allowed' });
       }
@@ -93,14 +112,15 @@ app.use('/api/notifications', notificationRoutes);
       }
     });
 
-    // Force download
     app.get('/api/files/download', (req, res) => {
       const raw = req.query.url;
       const filename = (req.query.filename || 'resume.pdf').trim();
       if (!raw) return res.status(400).json({ message: 'Missing url param' });
 
       let u;
-      try { u = new URL(raw); } catch { return res.status(400).json({ message: 'Invalid URL' }); }
+      try { u = new URL(raw); } 
+      catch { return res.status(400).json({ message: 'Invalid URL' }); }
+
       if (!ALLOWED_HOSTS.includes(u.hostname)) {
         return res.status(400).json({ message: 'URL host not allowed' });
       }
@@ -109,20 +129,18 @@ app.use('/api/notifications', notificationRoutes);
       const redirectUrl = `${raw}${sep}fl_attachment=${encodeURIComponent(filename)}`;
       return res.redirect(302, redirectUrl);
     });
-    //  END INLINE/DOWNLOAD ENDPOINTS
 
-    
     swaggerSetup(app);
 
-    // health
     app.get('/health', (req, res) => res.json({ ok: true }));
 
-    // error handler
     app.use(errorHandler);
 
     server.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
-      console.log(`Swagger: ${process.env.BASE_URL || `http://localhost:${PORT}`}/api-docs`);
+      console.log(
+        `Swagger: ${process.env.BASE_URL || `http://localhost:${PORT}`}/api-docs`
+      );
     });
   } catch (err) {
     console.error('Failed to start', err);
